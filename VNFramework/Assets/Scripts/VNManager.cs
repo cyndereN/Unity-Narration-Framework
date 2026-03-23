@@ -11,17 +11,21 @@ public class VNManager : MonoBehaviour
     public TypewriterEffect typewriterEffect;
     public Image avatarImage;
     public AudioSource vocalAudio;
+    public Image backgroundImage;
+    public AudioSource backgroundMusic;
+    public Image CharacterImage1;
+    public Image CharacterImage2;
 
     private string storyPath = Constants.STORY_PATH;
     private string defaultStoryName = Constants.DEFAULT_STORY_NAME;
     private List<ExcelReader.ExcelData> storyData;
-    private int currentLine = 0;
+    private int currentLine = Constants.DEFAULT_START_LINE;
     // Start is called before the first frame update
     void Start()
     {
 		// Could use Path.Combine or ReadOnlySpan and (or) Extension to optimise
 		LoadStoryFromFile(storyPath + defaultStoryName);
-        DisplayNextLine();
+        //DisplayNextLine();
     }
 
     // Update is called once per frame
@@ -48,10 +52,13 @@ public class VNManager : MonoBehaviour
 			Debug.Log(Constants.END_OF_STORY);
             return;
 		}
-
-        if (typewriterEffect.IsTyping())
+		if (vocalAudio.isPlaying)
+		{
+			vocalAudio.Stop();
+		}
+		if (typewriterEffect.IsTyping())
         {
-            typewriterEffect.CompleteLine();
+			typewriterEffect.CompleteLine();
         }
         else
         {
@@ -72,7 +79,26 @@ public class VNManager : MonoBehaviour
             {
                 PlayVocalAudio(data.vocalAudioFileName);
             }
-            currentLine++;
+
+            if (NotNullNorEmpty(data.backgroundImageFileName)) 
+            {
+                UpdateBackgroundImage(data.backgroundImageFileName);
+            }
+            if (NotNullNorEmpty(data.backgroundMusicFileName)) 
+            {
+				PlayBackgroundMusic(data.backgroundMusicFileName);
+            }
+
+            if (NotNullNorEmpty(data.character1Action))
+            {
+                UpdateCharacterImage(data.character1Action, data.character1ImageFileName, CharacterImage1);
+            }
+			if (NotNullNorEmpty(data.character2Action))
+			{
+				UpdateCharacterImage(data.character2Action, data.character2ImageFileName, CharacterImage2);
+			}
+
+			currentLine++;
         }
 	}
 
@@ -84,31 +110,74 @@ public class VNManager : MonoBehaviour
     void UpdateAvatarImage(string imageFileName)
     {
         string imagePath = Constants.AVATAR_PATH + imageFileName;
-        Sprite sprite = Resources.Load<Sprite>(imagePath);
+		UpdateImage(imagePath, avatarImage);
+	}
 
-        if (sprite != null)
-        {
-            avatarImage.sprite = sprite;
-            avatarImage.gameObject.SetActive(true);
-        }
-        else
-        {
-            Debug.LogError(Constants.IMAGE_LOAD_FAILED + imagePath);
-        }
-    }
+    
 
-    void PlayVocalAudio(string audioFileName)
+	void UpdateBackgroundImage(string imageFileName)
+	{
+		string imagePath = Constants.BACKGROUND_PATH + imageFileName;
+		UpdateImage(imagePath, backgroundImage);
+	}
+	
+    void UpdateCharacterImage(string action, string imageFileName, Image characterImage)
     {
-        string audioPath = Constants.VOCAL_PATH + audioFileName;
-        AudioClip audioClip = Resources.Load<AudioClip>(audioPath);
-        if (audioClip != null)
+        // todo: enable appear and move to in one frame
+        // todo: cache same image when disappear/appear
+        if (action.StartsWith(Constants.characterActionAppearAt))
         {
-            vocalAudio.clip = audioClip;
-            vocalAudio.Play();
+            string imagePath = Constants.CHARACTER_PATH + imageFileName;
+            UpdateImage(imagePath, characterImage);
         }
-        else
+        else if (action == Constants.characterActionDisappear)
         {
-            Debug.LogError(Constants.AUDIO_LOAD_FAILED + audioPath);
+            characterImage.gameObject.SetActive(false);
+        }
+        else if (action.StartsWith(Constants.characterActionMoveTo))
+        {
+            // todo
         }
     }
+
+	void UpdateImage(string imagePath, Image image)
+	{
+		Sprite sprite = Resources.Load<Sprite>(imagePath);
+
+		if (sprite != null)
+		{
+			image.sprite = sprite;
+			image.gameObject.SetActive(true);
+		}
+		else
+		{
+			Debug.LogError(Constants.IMAGE_LOAD_FAILED + imagePath);
+		}
+	}
+
+	void PlayVocalAudio(string audioFileName)
+	{
+		string audioPath = Constants.VOCAL_PATH + audioFileName;
+        PlayAudio(audioPath, vocalAudio, false);
+	}
+	void PlayBackgroundMusic(string audioFileName)
+	{
+		string musicPath = Constants.MUSIC_PATH + audioFileName;
+        PlayAudio(musicPath, backgroundMusic, true);
+	}
+
+    void PlayAudio(string audioPath, AudioSource audioSource, bool isLoop)
+    {
+		AudioClip audioClip = Resources.Load<AudioClip>(audioPath);
+		if (audioClip != null)
+		{
+			audioSource.clip = audioClip;
+			audioSource.Play();
+			audioSource.loop = isLoop;
+		}
+		else
+		{
+			Debug.LogError(Constants.AUDIO_LOAD_FAILED + audioPath);
+		}
+	}
 }
