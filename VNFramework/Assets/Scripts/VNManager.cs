@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -13,45 +14,80 @@ public class VNManager : MonoBehaviour
     public AudioSource vocalAudio;
     public Image backgroundImage;
     public AudioSource backgroundMusic;
-    public Image CharacterImage1;
-    public Image CharacterImage2;
+    public Image characterImage1;
+    public Image characterImage2;
+
+    public GameObject choicePanel;
+    public Button choiceButton1;
+    public Button choiceButton2;
+    // todo: what if more buttons?
 
     private string storyPath = Constants.STORY_PATH;
-    private string defaultStoryName = Constants.DEFAULT_STORY_NAME;
+    private string defaultStoryFileName = Constants.DEFAULT_STORY_FILE_NAME;
+    private string excelFileExtension = Constants.EXCEL_FILE_EXTENSION;
+
     private List<ExcelReader.ExcelData> storyData;
     private int currentLine = Constants.DEFAULT_START_LINE;
     // Start is called before the first frame update
     void Start()
     {
-		// Could use Path.Combine or ReadOnlySpan and (or) Extension to optimise
-		LoadStoryFromFile(storyPath + defaultStoryName);
-        //DisplayNextLine();
+        InitializeAndLoadStory(defaultStoryFileName);
     }
 
-    // Update is called once per frame
-    void Update()
+    private void InitializeAndLoadStory(string filename)
+    {
+        Initialize();
+
+		// Could use Path.Combine or ReadOnlySpan and (or) Extension to optimise
+		LoadStoryFromFile(filename);
+		DisplayNextLine();
+	}
+
+	private void Initialize()
+	{
+        currentLine = Constants.DEFAULT_START_LINE;
+        avatarImage.gameObject.SetActive(false);
+        backgroundImage.gameObject.SetActive(false);
+        characterImage1.gameObject.SetActive(false);
+        characterImage2.gameObject.SetActive(false);
+        choicePanel.gameObject.SetActive(false);
+	}
+
+	void LoadStoryFromFile(string filename)
+	{
+        var path = storyPath + filename + excelFileExtension;
+		storyData = ExcelReader.ReadExcel(path);
+		if (storyData == null || storyData.Count == 0)
+		{
+			Debug.LogError(Constants.NO_DATA_FOUND);
+		}
+	}
+
+	// Update is called once per frame
+	void Update()
     {
         if (Input.GetMouseButtonDown(0))
         {
             DisplayNextLine();
         }
     }
-    void LoadStoryFromFile(string path)
-    {
-        storyData = ExcelReader.ReadExcel(path);
-        if (storyData == null || storyData.Count == 0)
-        {
-            Debug.LogError(Constants.NO_DATA_FOUND);
-        }
-    }
 
 	void DisplayNextLine()
 	{
-		if (currentLine >= storyData.Count)
-		{
-			Debug.Log(Constants.END_OF_STORY);
-            return;
-		}
+        if (currentLine == storyData.Count - 1)
+        {
+            if (storyData[currentLine].speaker == Constants.END_OF_STORY)
+            {
+                Debug.Log(Constants.END_OF_STORY);
+                return;
+            }
+            if (storyData[currentLine].speaker == Constants.CHOICE)
+            {
+                ShowChoices();
+                return;
+            }
+        }
+
 		if (vocalAudio.isPlaying)
 		{
 			vocalAudio.Stop();
@@ -91,15 +127,29 @@ public class VNManager : MonoBehaviour
 
             if (NotNullNorEmpty(data.character1Action))
             {
-                UpdateCharacterImage(data.character1Action, data.character1ImageFileName, CharacterImage1);
+                UpdateCharacterImage(data.character1Action, data.character1ImageFileName, characterImage1, data.coordinateX1);
             }
 			if (NotNullNorEmpty(data.character2Action))
 			{
-				UpdateCharacterImage(data.character2Action, data.character2ImageFileName, CharacterImage2);
+				UpdateCharacterImage(data.character2Action, data.character2ImageFileName, characterImage2, data.coordinateX2);
 			}
 
 			currentLine++;
         }
+	}
+
+    void ShowChoices()
+    {
+        var Data = storyData[currentLine];
+        choiceButton1.onClick.RemoveAllListeners();
+        choiceButton2.onClick.RemoveAllListeners();
+
+        choicePanel.gameObject.SetActive(true);
+        choiceButton1.GetComponentInChildren<TextMeshProUGUI>().text = Data.content;
+        choiceButton1.onClick.AddListener(()=>InitializeAndLoadStory(Data.avatarImageFileName));
+
+		choiceButton2.GetComponentInChildren<TextMeshProUGUI>().text = Data.vocalAudioFileName;
+		choiceButton2.onClick.AddListener(() => InitializeAndLoadStory(Data.backgroundImageFileName));
 	}
 
     bool NotNullNorEmpty(string str)
@@ -113,30 +163,43 @@ public class VNManager : MonoBehaviour
 		UpdateImage(imagePath, avatarImage);
 	}
 
-    
-
 	void UpdateBackgroundImage(string imageFileName)
 	{
 		string imagePath = Constants.BACKGROUND_PATH + imageFileName;
 		UpdateImage(imagePath, backgroundImage);
 	}
 	
-    void UpdateCharacterImage(string action, string imageFileName, Image characterImage)
+    void UpdateCharacterImage(string action, string imageFileName, Image characterImage, string x)
     {
-        // todo: enable appear and move to in one frame
-        // todo: cache same image when disappear/appear
-        if (action.StartsWith(Constants.characterActionAppearAt))
+        if (action.StartsWith(Constants.APPEAR_AT))
         {
             string imagePath = Constants.CHARACTER_PATH + imageFileName;
-            UpdateImage(imagePath, characterImage);
+            if (NotNullNorEmpty(x))
+            {
+                UpdateImage(imagePath, characterImage);
+                var NewPosition = new Vector2(float.Parse(x), characterImage.rectTransform.anchoredPosition.y);
+                characterImage.rectTransform.anchoredPosition = NewPosition;
+                characterImage.DOFade(1, Constants.DURATION_TIME).From(0);
+            }
+            else 
+            {
+                Debug.LogError(Constants.COORDINATE_MISSING);
+            }
         }
-        else if (action == Constants.characterActionDisappear)
+        else if (action == Constants.DISAPPEAR)
         {
-            characterImage.gameObject.SetActive(false);
+            characterImage.DOFade(0, Constants.DURATION_TIME).OnComplete(()=> characterImage.gameObject.SetActive(false));
         }
-        else if (action.StartsWith(Constants.characterActionMoveTo))
+        else if (action.StartsWith(Constants.MOVE_TO))
         {
-            // todo
+            if (NotNullNorEmpty(x))
+            {
+                characterImage.rectTransform.DOAnchorPosX(float.Parse(x), Constants.DURATION_TIME);
+            }
+            else
+            {
+                Debug.LogError(Constants.DURATION_TIME);
+            }
         }
     }
 

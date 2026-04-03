@@ -1,8 +1,11 @@
+using UnityEditor.PackageManager;
 using UnityEngine;
 
 public class Constants
 {
 	public static string STORY_PATH = "Assets/Resources/story/";
+	public static string DEFAULT_STORY_FILE_NAME = "Test";
+	public static string EXCEL_FILE_EXTENSION = ".xlsx";
 	public static float DEFAULT_WAITING_SECONDS = 0.05f;
 	public static int DEFAULT_START_LINE = 1;
 
@@ -16,11 +19,15 @@ public class Constants
 
 	public static string NO_DATA_FOUND = "No data found";
 	public static string END_OF_STORY = "End of story";
+	public static string CHOICE = "choice";
 	public static string DEFAULT_STORY_NAME = "Test.xlsx";
 
-	public static string characterActionAppearAt = "appearAt";
-	public static string characterActionDisappear = "disappear";
-	public static string characterActionMoveTo = "moveTo";
+	public static string APPEAR_AT = "appearAt";
+	public static string DISAPPEAR = "disappear";
+	public static string MOVE_TO = "moveTo";
+
+	public static int DURATION_TIME = 1;
+	public static string COORDINATE_MISSING = "Coornidate missing";
 	// todo : add more
 }
 
