@@ -6,7 +6,7 @@ using UnityEngine;
 public class TypewriterEffect : MonoBehaviour
 {
     public TextMeshProUGUI textDisplay;
-    public float waitingSeconds = Constants.DEFAULT_WAITING_SECONDS;
+    public float typingSpeed = Constants.DEFAULT_TYPING_SPEED;
 
     private Coroutine typingCoroutine;
     private bool isTyping;
@@ -29,7 +29,7 @@ public class TypewriterEffect : MonoBehaviour
         for (int i = 0; i <= text.Length; i++) 
         {
             textDisplay.maxVisibleCharacters = i;
-            yield return new WaitForSeconds(waitingSeconds);
+            yield return new WaitForSeconds(typingSpeed);
         }
 
         isTyping = false;

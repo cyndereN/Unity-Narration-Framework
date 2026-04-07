@@ -22,17 +22,37 @@ public class VNManager : MonoBehaviour
     public Button choiceButton2;
     // todo: what if more buttons?
 
-    private string storyPath = Constants.STORY_PATH;
-    private string defaultStoryFileName = Constants.DEFAULT_STORY_FILE_NAME;
-    private string excelFileExtension = Constants.EXCEL_FILE_EXTENSION;
+    public GameObject bottomButtons;
+    public Button autoButton;
+    public Button skipButton;
+
+    private readonly string storyPath = Constants.STORY_PATH;
+    private readonly string defaultStoryFileName = Constants.DEFAULT_STORY_FILE_NAME;
+    private readonly string excelFileExtension = Constants.EXCEL_FILE_EXTENSION;
 
     private List<ExcelReader.ExcelData> storyData;
     private int currentLine = Constants.DEFAULT_START_LINE;
-    // Start is called before the first frame update
-    void Start()
+    private string currentStoryFileName;
+
+	private bool isAutoPlay = false;
+    private bool isSkipping = false;
+
+    private int maxReachedLineIndex = 0;
+    private Dictionary<string, int> globalMaxReachedLineIndices = new Dictionary<string, int>();
+
+	// Start is called before the first frame update
+	void Start()
     {
-        InitializeAndLoadStory(defaultStoryFileName);
+        bottomButtonsAddListener();
+
+		InitializeAndLoadStory(defaultStoryFileName);
     }
+
+    void bottomButtonsAddListener()
+    {
+		autoButton.onClick.AddListener(OnAutoButtonClick);
+		skipButton.onClick.AddListener(OnSkipButtonClick);
+	}
 
     private void InitializeAndLoadStory(string filename)
     {
@@ -46,6 +66,7 @@ public class VNManager : MonoBehaviour
 	private void Initialize()
 	{
         currentLine = Constants.DEFAULT_START_LINE;
+
         avatarImage.gameObject.SetActive(false);
         backgroundImage.gameObject.SetActive(false);
         characterImage1.gameObject.SetActive(false);
@@ -55,12 +76,23 @@ public class VNManager : MonoBehaviour
 
 	void LoadStoryFromFile(string filename)
 	{
+        currentStoryFileName = filename;
         var path = storyPath + filename + excelFileExtension;
 		storyData = ExcelReader.ReadExcel(path);
 		if (storyData == null || storyData.Count == 0)
 		{
 			Debug.LogError(Constants.NO_DATA_FOUND);
 		}
+
+        if (globalMaxReachedLineIndices.ContainsKey(currentStoryFileName))
+        {
+            maxReachedLineIndex = globalMaxReachedLineIndices[currentStoryFileName];
+        }
+        else
+        {
+            maxReachedLineIndex = 0;
+            globalMaxReachedLineIndices[currentStoryFileName] = maxReachedLineIndex;
+        }
 	}
 
 	// Update is called once per frame
@@ -68,74 +100,95 @@ public class VNManager : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            DisplayNextLine();
+            if (!IsHittingBottomButtons())
+            {
+				DisplayNextLine();
+			}
         }
     }
 
 	void DisplayNextLine()
 	{
-        if (currentLine == storyData.Count - 1)
+		if (currentLine > maxReachedLineIndex)
         {
+            maxReachedLineIndex = currentLine;
+            globalMaxReachedLineIndices[currentStoryFileName] = maxReachedLineIndex;
+        }
+
+        if (currentLine >= storyData.Count - 1)
+        {
+            if (isAutoPlay)
+            {
+                isAutoPlay = false;
+                UpdateButtonImage(Constants.AUTO_OFF, autoButton);
+            }
+
             if (storyData[currentLine].speaker == Constants.END_OF_STORY)
             {
                 Debug.Log(Constants.END_OF_STORY);
-                return;
             }
-            if (storyData[currentLine].speaker == Constants.CHOICE)
+            else if (storyData[currentLine].speaker == Constants.CHOICE)
             {
                 ShowChoices();
-                return;
             }
-        }
 
-		if (vocalAudio.isPlaying)
-		{
-			vocalAudio.Stop();
+			return;
 		}
+
 		if (typewriterEffect.IsTyping())
         {
 			typewriterEffect.CompleteLine();
         }
         else
         {
-            var data = storyData[currentLine];
-            speakerName.text = data.speaker;
-            speakerContent.text = data.content;
-            typewriterEffect.StartTyping(speakerContent.text);
-            if (NotNullNorEmpty(data.avatarImageFileName))
-            {
-                UpdateAvatarImage(data.avatarImageFileName);
-            }
-            else
-            {
-                avatarImage.gameObject.SetActive(false);
-            }
+            DisplayThisLine();
+		}
+	}
 
-            if (NotNullNorEmpty(data.vocalAudioFileName))
-            {
-                PlayVocalAudio(data.vocalAudioFileName);
-            }
+    void DisplayThisLine()
+    {
 
-            if (NotNullNorEmpty(data.backgroundImageFileName)) 
-            {
-                UpdateBackgroundImage(data.backgroundImageFileName);
-            }
-            if (NotNullNorEmpty(data.backgroundMusicFileName)) 
-            {
-				PlayBackgroundMusic(data.backgroundMusicFileName);
-            }
+		if (vocalAudio.isPlaying)
+		{
+			vocalAudio.Stop();
+		}
+		var data = storyData[currentLine];
+		speakerName.text = data.speaker;
+		speakerContent.text = data.content;
+		typewriterEffect.StartTyping(speakerContent.text);
+		if (NotNullNorEmpty(data.avatarImageFileName))
+		{
+			UpdateAvatarImage(data.avatarImageFileName);
+		}
+		else
+		{
+			avatarImage.gameObject.SetActive(false);
+		}
 
-            if (NotNullNorEmpty(data.character1Action))
-            {
-                UpdateCharacterImage(data.character1Action, data.character1ImageFileName, characterImage1, data.coordinateX1);
-            }
-			if (NotNullNorEmpty(data.character2Action))
-			{
-				UpdateCharacterImage(data.character2Action, data.character2ImageFileName, characterImage2, data.coordinateX2);
-			}
+		if (NotNullNorEmpty(data.vocalAudioFileName))
+		{
+			PlayVocalAudio(data.vocalAudioFileName);
+		}
 
-			currentLine++;
-        }
+		if (NotNullNorEmpty(data.backgroundImageFileName))
+		{
+			UpdateBackgroundImage(data.backgroundImageFileName);
+		}
+		if (NotNullNorEmpty(data.backgroundMusicFileName))
+		{
+			PlayBackgroundMusic(data.backgroundMusicFileName);
+		}
+
+		if (NotNullNorEmpty(data.character1Action))
+		{
+			UpdateCharacterImage(data.character1Action, data.character1ImageFileName, characterImage1, data.coordinateX1);
+		}
+		if (NotNullNorEmpty(data.character2Action))
+		{
+			UpdateCharacterImage(data.character2Action, data.character2ImageFileName, characterImage2, data.coordinateX2);
+		}
+
+		currentLine++;
 	}
 
     void ShowChoices()
@@ -157,7 +210,22 @@ public class VNManager : MonoBehaviour
         return !string.IsNullOrEmpty(str);
     }
 
-    void UpdateAvatarImage(string imageFileName)
+	void UpdateImage(string imagePath, Image image)
+	{
+		Sprite sprite = Resources.Load<Sprite>(imagePath);
+
+		if (sprite != null)
+		{
+			image.sprite = sprite;
+			image.gameObject.SetActive(true);
+		}
+		else
+		{
+			Debug.LogError(Constants.IMAGE_LOAD_FAILED + imagePath);
+		}
+	}
+
+	void UpdateAvatarImage(string imageFileName)
     {
         string imagePath = Constants.AVATAR_PATH + imageFileName;
 		UpdateImage(imagePath, avatarImage);
@@ -203,19 +271,10 @@ public class VNManager : MonoBehaviour
         }
     }
 
-	void UpdateImage(string imagePath, Image image)
+	void UpdateButtonImage(string imageFileName, Button button)
 	{
-		Sprite sprite = Resources.Load<Sprite>(imagePath);
-
-		if (sprite != null)
-		{
-			image.sprite = sprite;
-			image.gameObject.SetActive(true);
-		}
-		else
-		{
-			Debug.LogError(Constants.IMAGE_LOAD_FAILED + imagePath);
-		}
+		string imagePath = Constants.BUTTON_PATH + imageFileName;
+		UpdateImage(imagePath, button.image);
 	}
 
 	void PlayVocalAudio(string audioFileName)
@@ -243,4 +302,91 @@ public class VNManager : MonoBehaviour
 			Debug.LogError(Constants.AUDIO_LOAD_FAILED + audioPath);
 		}
 	}
+
+
+	bool IsHittingBottomButtons()
+    {
+        return RectTransformUtility.RectangleContainsScreenPoint(
+            bottomButtons.GetComponent<RectTransform>(),
+            Input.mousePosition,
+            null
+        );
+    }
+
+
+	private IEnumerator StartAutoPlay()
+	{
+		while (isAutoPlay)
+		{
+			if (!typewriterEffect.IsTyping())
+			{
+				DisplayNextLine();
+			}
+
+			yield return new WaitForSeconds(Constants.DEFAULT_AUTO_WAITING_SECONDS);
+		}
+	}
+
+	void OnAutoButtonClick()
+    {
+        isAutoPlay = !isAutoPlay;
+
+        UpdateButtonImage((isAutoPlay ? Constants.AUTO_ON : Constants.AUTO_OFF), autoButton);
+
+        if (isAutoPlay) 
+        {
+			StartCoroutine(StartAutoPlay());
+        }
+    }
+    
+    void OnSkipButtonClick()
+    {
+        if (!isSkipping && CanSkip())
+        {
+            StartSkipping();
+        }
+        else if (isSkipping) 
+        {
+            StartCoroutine(SkipToMaxReachedLine());
+            EndSkipping();
+        }
+    }
+
+    bool CanSkip()
+    {
+        return currentLine < maxReachedLineIndex;
+    }
+
+    void StartSkipping()
+    {
+        isSkipping = true;
+        UpdateButtonImage(Constants.SKIP_ON, skipButton);
+        typewriterEffect.typingSpeed = Constants.SKIP_MODE_TYPING_SPEED;
+
+		StartCoroutine(SkipToMaxReachedLine());
+	}
+
+    private IEnumerator SkipToMaxReachedLine()
+    {
+        while (isSkipping)
+        {
+            if (CanSkip())
+            {
+                DisplayThisLine();
+            }
+            else
+            {
+				EndSkipping();
+            }
+            yield return new WaitForSeconds(Constants.DEFAULT_SKIP_WAITING_SECONDS);
+        }   
+    }
+
+    void EndSkipping()
+    {
+        isSkipping = false;
+		typewriterEffect.typingSpeed = Constants.DEFAULT_TYPING_SPEED;
+		UpdateButtonImage(Constants.SKIP_OFF, skipButton);
+	}
+
 }
