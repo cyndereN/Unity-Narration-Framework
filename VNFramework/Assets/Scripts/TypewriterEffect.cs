@@ -6,13 +6,14 @@ using UnityEngine;
 public class TypewriterEffect : MonoBehaviour
 {
     public TextMeshProUGUI textDisplay;
-    public float typingSpeed = Constants.DEFAULT_TYPING_SPEED;
-
-    private Coroutine typingCoroutine;
+    private float typingSpeed = Constants.DEFAULT_TYPING_SPEED;
     private bool isTyping;
 
-    public void StartTyping(string text)
+    private Coroutine typingCoroutine;
+
+    public void StartTyping(string text, float speed)
     {
+        typingSpeed = speed;
         if (typingCoroutine != null)
         {
             StopCoroutine(typingCoroutine);

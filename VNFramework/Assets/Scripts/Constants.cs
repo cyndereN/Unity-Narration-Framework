@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using UnityEditor.PackageManager;
 using UnityEngine;
 
@@ -36,8 +37,18 @@ public class Constants
 	public static float DEFAULT_SKIP_WAITING_SECONDS = 0.02f;
 
 	public static float DURATION_TIME = 1.0f;
-	public static float DEFAULT_TYPING_SPEED = 0.05f;
+	public static float DEFAULT_TYPING_SPEED = 0.5f;
 	public static float SKIP_MODE_TYPING_SPEED = 0.01f;
+
+	public static int DEFAULT_START_INDEX = 0;
+	public static int SLOTS_PER_PAGE = 8;
+	public static int TOTAL_SLOTS = 40;
+	public static string COLON = ":";
+	public static string SAVE_GAME = "save_game";
+	public static string SAVE_FILE_PATH = "saves";
+	public static string SAVE_FILE_EXTENSION = ".json";
+	public static string LOAD_GAME = "load_game";
+	public static string EMPTY_SLOT = "empty_slot";
 }
 
 
