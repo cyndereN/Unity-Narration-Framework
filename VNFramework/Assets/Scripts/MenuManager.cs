@@ -35,22 +35,34 @@ public class MenuManager : MonoBehaviour
     {
         startButton.onClick.AddListener(StartGame);
         continueButton.onClick.AddListener(ContinueGame);
+        loadButton.onClick.AddListener(LoadGame);
     }
 
     private void StartGame()
     {
-        hasStarted = true;
         VNManager.Instance.StartGame();
-        menuPanel.SetActive(false);
-        VNManager.Instance.gamePanel.SetActive(true);
+        ShowGamePanel();
     }
 
     private void ContinueGame()
     {
         if (hasStarted)
         {
-            menuPanel.SetActive(false);
-            VNManager.Instance.gamePanel.SetActive(true);
+            ShowGamePanel();
+            VNManager.Instance.RecoverLastBackgroundAndAction();
         }
+    }
+
+    private void LoadGame()
+    {
+        menuPanel.SetActive(false);
+        VNManager.Instance.ShowLoadPanel(ShowGamePanel);
+    }
+
+    private void ShowGamePanel()
+    {
+        hasStarted = true;
+        menuPanel.SetActive(false);
+        VNManager.Instance.gamePanel.SetActive(true);
     }
 }

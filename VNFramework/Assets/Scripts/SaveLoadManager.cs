@@ -20,6 +20,7 @@ public class SaveLoadManager : MonoBehaviour
 	private readonly int totalSlots = Constants.TOTAL_SLOTS;
 
 	private System.Action<int> currentAction;
+	private System.Action menuAction;
 
 	public static SaveLoadManager Instance { get; private set; }
 
@@ -52,11 +53,12 @@ public class SaveLoadManager : MonoBehaviour
 		saveLoadPanel.SetActive(true);
 	}
 
-	public void ShowLoadPanel(System.Action<int> action)
+	public void ShowLoadPanel(System.Action<int> action, System.Action menuAction)
 	{
 		isSave = false;
 		panelTitle.text = Constants.LOAD_GAME;
 		currentAction = action;
+		this.menuAction = menuAction;
 		UpdateUI();
 		saveLoadPanel.SetActive(true);
 	}
@@ -103,6 +105,7 @@ public class SaveLoadManager : MonoBehaviour
 
 	private void OnButtonClick(Button button, int slotIndex)
 	{
+		menuAction?.Invoke();
 		currentAction?.Invoke(slotIndex);
 		if (isSave)
 		{
@@ -110,7 +113,7 @@ public class SaveLoadManager : MonoBehaviour
 		}
 		else
 		{
-			
+			GoBack();
 		}
 	}
 
@@ -152,10 +155,10 @@ public class SaveLoadManager : MonoBehaviour
 				button.GetComponentInChildren<RawImage>().texture = screenShot;
 			}
 
-			if (saveData.currentSpeakingContent != null)
+			if (saveData.savedSpeakingContent != null)
 			{
 				var textComponents = button.GetComponentsInChildren<TextMeshProUGUI>();
-				textComponents[0].text = saveData.currentSpeakingContent;
+				textComponents[0].text = saveData.savedSpeakingContent;
 				textComponents[1].text = File.GetLastWriteTime(savePath).ToString("G");
 			}
 		}

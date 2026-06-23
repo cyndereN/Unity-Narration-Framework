@@ -1,5 +1,6 @@
 using DG.Tweening;
 using Newtonsoft.Json;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -41,6 +42,7 @@ public class VNManager : MonoBehaviour
 
     private readonly string storyPath = Constants.STORY_PATH;
     private readonly string defaultStoryFileName = Constants.DEFAULT_STORY_FILE_NAME;
+    private readonly int defaultStartLine = Constants.DEFAULT_START_LINE;
     private readonly string excelFileExtension = Constants.EXCEL_FILE_EXTENSION;
 
     private string saveFolderPath;
@@ -54,6 +56,7 @@ public class VNManager : MonoBehaviour
 
 	private bool isAutoPlay = false;
     private bool isSkipping = false;
+    private bool isLoaded = false;
 
     private int maxReachedLineIndex = 0;
     private readonly Dictionary<string, int> globalMaxReachedLineIndices = new Dictionary<string, int>();
@@ -103,7 +106,7 @@ public class VNManager : MonoBehaviour
 #region Init
     public void StartGame()
     {
-		InitializeAndLoadStory(defaultStoryFileName);
+		InitializeAndLoadStory(defaultStoryFileName, defaultStartLine);
     }
 
     void bottomButtonsAddListener()
@@ -117,18 +120,23 @@ public class VNManager : MonoBehaviour
         closeButton.onClick.AddListener(OnCloseButtonClick);
     }
 
-    private void InitializeAndLoadStory(string filename)
+    private void InitializeAndLoadStory(string filename, int lineNumber)
     {
-        Initialize();
+        Initialize(lineNumber);
 
 		// Could use Path.Combine or ReadOnlySpan and (or) Extension to optimise
 		LoadStoryFromFile(filename);
+        if (isLoaded)
+        {
+            RecoverLastBackgroundAndAction();
+            isLoaded = false;
+        }
 		DisplayNextLine();
 	}
 
-	private void Initialize()
+	private void Initialize(int lineNumber)
 	{
-        currentLine = Constants.DEFAULT_START_LINE;
+        currentLine = lineNumber;
 
         avatarImage.gameObject.SetActive(false);
         backgroundImage.gameObject.SetActive(false);
@@ -209,10 +217,6 @@ public class VNManager : MonoBehaviour
 
     void DisplayThisLine()
     {
-		if (vocalAudio.isPlaying)
-		{
-			vocalAudio.Stop();
-		}
 		var data = storyData[currentLine];
 		speakerName.text = data.speaker;
         currentSpeakingContent = data.content;
@@ -230,10 +234,6 @@ public class VNManager : MonoBehaviour
 		{
 			PlayVocalAudio(data.vocalAudioFileName);
 		}
-        else
-        {
-            vocalAudio.clip = null;
-        }
 
 		if (NotNullNorEmpty(data.backgroundImageFileName))
 		{
@@ -256,6 +256,28 @@ public class VNManager : MonoBehaviour
 		currentLine++;
 	}
 
+    public void RecoverLastBackgroundAndAction()
+    {
+        var data = storyData[currentLine];
+
+        if (NotNullNorEmpty(data.lastBackgroundImage))
+        {
+            UpdateBackgroundImage(data.lastBackgroundImage);
+        }
+        if (NotNullNorEmpty(data.lastBackgroundMusic))
+        {
+            PlayBackgroundMusic(data.lastBackgroundMusic);
+        }
+        if (data.character1Action != Constants.APPEAR_AT && NotNullNorEmpty(data.character1ImageFileName))
+        {
+            UpdateCharacterImage(Constants.APPEAR_AT , data.character1ImageFileName, characterImage1, data.lastCoordinateX1);
+        }
+        if (data.character2Action != Constants.APPEAR_AT && NotNullNorEmpty(data.character2ImageFileName))
+        {
+            UpdateCharacterImage(Constants.APPEAR_AT , data.character2ImageFileName, characterImage2, data.lastCoordinateX2);
+        }
+    }
+
     void ShowChoices()
     {
         var Data = storyData[currentLine];
@@ -264,10 +286,10 @@ public class VNManager : MonoBehaviour
 
         choicePanel.gameObject.SetActive(true);
         choiceButton1.GetComponentInChildren<TextMeshProUGUI>().text = Data.content;
-        choiceButton1.onClick.AddListener(()=>InitializeAndLoadStory(Data.avatarImageFileName));
+        choiceButton1.onClick.AddListener(()=>InitializeAndLoadStory(Data.avatarImageFileName, defaultStartLine));
 
 		choiceButton2.GetComponentInChildren<TextMeshProUGUI>().text = Data.vocalAudioFileName;
-		choiceButton2.onClick.AddListener(() => InitializeAndLoadStory(Data.backgroundImageFileName));
+		choiceButton2.onClick.AddListener(() => InitializeAndLoadStory(Data.backgroundImageFileName, defaultStartLine));
 	}
 
     bool NotNullNorEmpty(string str)
@@ -312,7 +334,7 @@ public class VNManager : MonoBehaviour
                 UpdateImage(imagePath, characterImage);
                 var NewPosition = new Vector2(float.Parse(x), characterImage.rectTransform.anchoredPosition.y);
                 characterImage.rectTransform.anchoredPosition = NewPosition;
-                characterImage.DOFade(1, Constants.DURATION_TIME).From(0);
+                characterImage.DOFade(1, (isLoaded ? 0 : Constants.DURATION_TIME)).From(0);
             }
             else 
             {
@@ -359,9 +381,14 @@ public class VNManager : MonoBehaviour
 		if (audioClip != null)
 		{
 			audioSource.clip = audioClip;
-            audioSource.gameObject.SetActive(true);
-			audioSource.Play();
 			audioSource.loop = isLoop;
+            audioSource.gameObject.SetActive(true);
+			
+            // todo: Force replay?
+            audioSource.Stop();
+            audioSource.time = 0;
+            audioSource.enabled = true;
+            audioSource.Play();
 		}
 		else
 		{
@@ -428,13 +455,17 @@ public class VNManager : MonoBehaviour
 
     public class SaveData 
     {
-        public string currentSpeakingContent;
+        public string savedStoryFileName;
+        public int savedLine;
+        public string savedSpeakingContent;
         public byte[] screenShotData;
     } 
     void SaveGame(int slotIndex)
     {
         var saveData = new SaveData(){
-            currentSpeakingContent = currentSpeakingContent,
+            savedStoryFileName = currentStoryFileName,
+            savedLine = currentLine,
+            savedSpeakingContent = currentSpeakingContent,
             screenShotData = screenshotData
         };
         
@@ -445,16 +476,34 @@ public class VNManager : MonoBehaviour
 
     private void OnLoadButtonClick()
     {
-        SaveLoadManager.Instance.ShowLoadPanel(LoadGame);
+        ShowLoadPanel(null);
+    }
+
+    public void ShowLoadPanel(Action action)
+    {
+        SaveLoadManager.Instance.ShowLoadPanel(LoadGame, action);
     }
 
     void LoadGame(int slotIndex)
     {
-        
+        string savePath = Path.Combine(saveFolderPath, slotIndex + Constants.SAVE_FILE_EXTENSION);
+        if (File.Exists(savePath))
+        {
+            isLoaded = true;
+
+            string json = File.ReadAllText(savePath);
+            var saveData = JsonConvert.DeserializeObject<SaveData>(json);
+            // Display Next line ++ ed
+            var lineNumber = saveData.savedLine - 1;
+            InitializeAndLoadStory(saveData.savedStoryFileName, lineNumber);
+        }
     }
     
     private void OnHomeButtonClick()
     {
+        typewriterEffect.CompleteLine();
+        vocalAudio.Stop();
+        backgroundMusic.Stop();
         gamePanel.SetActive(false);
         MenuManager.Instance.menuPanel.SetActive(true);
     }
