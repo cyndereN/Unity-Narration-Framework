@@ -40,7 +40,7 @@ public class SaveLoadManager : MonoBehaviour
 	{
 		prevPageButton.onClick.AddListener(PrevPage);
 		nextPageButton.onClick.AddListener(NextPage);
-		backButton.onClick.AddListener(GoBack);
+		//backButton.onClick.AddListener(GoBack);
 		saveLoadPanel.SetActive(false);
 	}
 

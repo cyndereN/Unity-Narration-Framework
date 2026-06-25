@@ -39,6 +39,7 @@ public class Constants
 	public static float DURATION_TIME = 1.0f;
 	public static float DEFAULT_TYPING_SPEED = 0.05f;
 	public static float SKIP_MODE_TYPING_SPEED = 0.01f;
+	public static int MAX_LENGTH = 30;
 
 	public static int DEFAULT_START_INDEX = 0;
 	public static int SLOTS_PER_PAGE = 8;

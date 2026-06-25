@@ -55,7 +55,6 @@ public class MenuManager : MonoBehaviour
 
     private void LoadGame()
     {
-        menuPanel.SetActive(false);
         VNManager.Instance.ShowLoadPanel(ShowGamePanel);
     }
 
