@@ -90,6 +90,7 @@ public class VNManager : MonoBehaviour
         if (!MenuManager.Instance.menuPanel.activeSelf &&
             !SaveLoadManager.Instance.saveLoadPanel.activeSelf &&
             !HistoryManager.Instance.historyScrollView.activeSelf &&
+            !SettingsManager.Instance.settingsPanel.activeSelf &&
             gamePanel.activeSelf)
         {
             if ( Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
@@ -551,6 +552,8 @@ public class VNManager : MonoBehaviour
     private void OnSettingsButtonClick()
     {
         StopAutoAndSkip();
+        
+        SettingsManager.Instance.ShowSettingsPanel();
     }
 
     private void OnHomeButtonClick()
