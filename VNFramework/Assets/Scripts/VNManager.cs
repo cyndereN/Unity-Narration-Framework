@@ -174,7 +174,7 @@ public class VNManager : MonoBehaviour
 	void LoadStoryFromFile(string filename)
 	{
         currentStoryFileName = filename;
-        var path = storyPath + filename + excelFileExtension;
+        var path = Path.Combine(Application.streamingAssetsPath, storyPath, filename + excelFileExtension);
 		storyData = ExcelReader.ReadExcel(path);
 		if (storyData == null || storyData.Count == 0)
 		{
