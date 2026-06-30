@@ -8,23 +8,26 @@ public class Constants
 	public static string AVATAR_PATH = "image/avatar/";
 	public static string BACKGROUND_PATH = "image/background/";
 	public static string CHARACTER_PATH = "image/character/";
+	public static string THUMBNAIL_PATH = "image/thumbnail/";
 	public static string BUTTON_PATH = "image/button/";
 	public static string VOCAL_PATH = "audio/vocal/";
 	public static string MUSIC_PATH = "audio/music/";
 	public static string AUDIO_LOAD_FAILED = "Failed to load audio: ";
 	public static string IMAGE_LOAD_FAILED = "Failed to load Image: ";
+	public static string BIG_IMAGE_LOAD_FAILED = "Failed to load big Image: ";
 	public static string COORDINATE_MISSING = "Coornidate missing";
 
 	public static string AUTO_ON = "autoplayon";
 	public static string AUTO_OFF = "autoplayoff";
 	public static float DEFAULT_AUTO_WAITING_SECONDS = 1f;
 
-	public static string NO_DATA_FOUND = "No data found";
+		public static string NO_DATA_FOUND = "No data found";
 	public static string END_OF_STORY = "End of story";
 	public static string CHOICE = "choice";
 	public static string DEFAULT_STORY_NAME = "Test.xlsx";
 
 	public static string APPEAR_AT = "appearAt";
+	public static string APPEAR_AT_INSTANTLY = "appearAtInstantly";
 	public static string DISAPPEAR = "disappear";
 	public static string MOVE_TO = "moveTo";
 
@@ -46,6 +49,17 @@ public class Constants
 	public static string SAVE_FILE_EXTENSION = ".json";
 	public static string LOAD_GAME = "load_game";
 	public static string EMPTY_SLOT = "empty_slot";
+
+	public static int GALLERY_SLOTS_PER_PAGE =  9;
+	public static string GALLERY = "gallery";
+	public static string GALLERY_PLACEHOLDER = "gallery_placeholder";
+	public static string[] ALL_BACKGROUNDS = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+
+	public static string UNLOCKED = "unlocked";
+
+	public static string CONFIRM = "Confirm";
+	public static string PROMPT_TEXT = "Please input your name: ";
+	public static string PLAYER_NAME_TAG = "[Name]";
+
+	public static string GOTO = "goto";
 }
-
-

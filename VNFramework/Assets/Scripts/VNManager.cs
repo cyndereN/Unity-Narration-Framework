@@ -61,6 +61,7 @@ public class VNManager : MonoBehaviour
     private int maxReachedLineIndex = 0;
     private readonly Dictionary<string, int> globalMaxReachedLineIndices = new Dictionary<string, int>();
     private LinkedList<string> historyRecords = new LinkedList<string>();
+    public HashSet<string> unblockedBackgrounds = new HashSet<string>();
 
     public static VNManager Instance { get; private set; }
 #endregion Variables
@@ -224,6 +225,10 @@ public class VNManager : MonoBehaviour
             {
                 ShowChoices();
             }
+            else if (storyData[currentLine].speaker == Constants.GOTO)
+            {
+                InitializeAndLoadStory(storyData[currentLine].content, defaultStartLine);
+            }
 
 			return;
 		}
@@ -241,9 +246,19 @@ public class VNManager : MonoBehaviour
     void DisplayThisLine()
     {
 		var data = storyData[currentLine];
-		speakerName.text = data.speaker;
+
+        string playerName = PlayerData.Instance.playerName;
+        string speaker = data.speaker.Replace(Constants.PLAYER_NAME_TAG, playerName);
+        speakerName.text = speaker;
+        string content = data.content.Replace(Constants.PLAYER_NAME_TAG, playerName);
+        currentSpeakingContent = content;
+
+		/*
+        speakerName.text = data.speaker;
         currentSpeakingContent = data.content;
-		typewriterEffect.StartTyping(currentSpeakingContent, currentTypingSpeed);
+		*/
+
+        typewriterEffect.StartTyping(currentSpeakingContent, currentTypingSpeed);
 
         RecordHistory(speakerName.text, currentSpeakingContent);
 
@@ -317,6 +332,8 @@ public class VNManager : MonoBehaviour
 
     void ShowChoices()
     {
+        StopAutoAndSkip();
+        typewriterEffect.CompleteLine();
         var Data = storyData[currentLine];
         choiceButton1.onClick.RemoveAllListeners();
         choiceButton2.onClick.RemoveAllListeners();
@@ -359,6 +376,11 @@ public class VNManager : MonoBehaviour
 	{
 		string imagePath = Constants.BACKGROUND_PATH + imageFileName;
 		UpdateImage(imagePath, backgroundImage);
+
+        if (!unblockedBackgrounds.Contains(imageFileName))
+        {
+            unblockedBackgrounds.Add(imageFileName);
+        }
 	}
 	
     void UpdateCharacterImage(string action, string imageFileName, Image characterImage, string x)
@@ -371,7 +393,7 @@ public class VNManager : MonoBehaviour
                 UpdateImage(imagePath, characterImage);
                 var NewPosition = new Vector2(float.Parse(x), characterImage.rectTransform.anchoredPosition.y);
                 characterImage.rectTransform.anchoredPosition = NewPosition;
-                characterImage.DOFade(1, (isLoaded ? 0 : Constants.DURATION_TIME)).From(0);
+                characterImage.DOFade(1, (isLoaded || action == Constants.APPEAR_AT_INSTANTLY ? 0 : Constants.DURATION_TIME)).From(0);
             }
             else 
             {
@@ -497,7 +519,7 @@ public class VNManager : MonoBehaviour
         public string savedSpeakingContent;
         public byte[] screenShotData;
         public LinkedList<string> savedHistoryRecords;
-        
+        public string savedPlayerName;
     } 
     void SaveGame(int slotIndex)
     {
@@ -507,6 +529,7 @@ public class VNManager : MonoBehaviour
             savedSpeakingContent = currentSpeakingContent,
             screenShotData = screenshotData,
             savedHistoryRecords = historyRecords,
+            savedPlayerName = PlayerData.Instance.playerName,
         };
         
         string savePath = Path.Combine(saveFolderPath, slotIndex + Constants.SAVE_FILE_EXTENSION);
@@ -536,6 +559,7 @@ public class VNManager : MonoBehaviour
             var saveData = JsonConvert.DeserializeObject<SaveData>(json);
             historyRecords = saveData.savedHistoryRecords;
             historyRecords.RemoveLast();
+            PlayerData.Instance.playerName = saveData.savedPlayerName;
 
             // Display Next line ++ ed
             var lineNumber = saveData.savedLine - 1;
