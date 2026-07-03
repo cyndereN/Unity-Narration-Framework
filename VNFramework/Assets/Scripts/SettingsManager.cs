@@ -3,6 +3,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.Audio;
 
 public class SettingsManager : MonoBehaviour
 {
@@ -13,6 +14,12 @@ public class SettingsManager : MonoBehaviour
 
     private Resolution[] availableResolutions;
     private Resolution defaultResolution;
+
+    public Slider masterVolumeSlider;
+    public Slider musicVolumeSlider;
+    public Slider voiceVolumeSlider;
+    public AudioMixer audioMixer;
+
     public Button defaultButton;
     public Button closeButton;
 
@@ -32,14 +39,17 @@ public class SettingsManager : MonoBehaviour
 
     void Start()
     {
+        InitializeVolumes();
         InitializeResolutions();
-        fullscreenToggle.isOn = Screen.fullScreenMode == FullScreenMode.FullScreenWindow;
-        UpdateToggleLabel(fullscreenToggle.isOn);
-
+        InitializeDisplayMode();
+        
         fullscreenToggle.onValueChanged.AddListener(SetDisplayMode);
         resolutionDropdown.onValueChanged.AddListener(SetResolution);
         closeButton.onClick.AddListener(CloseSetting);
         defaultButton.onClick.AddListener(ResetSetting);
+        masterVolumeSlider.onValueChanged.AddListener(SetMasterVolume);
+        musicVolumeSlider.onValueChanged.AddListener(SetMusicVolume);
+        voiceVolumeSlider.onValueChanged.AddListener(SetVoiceVolume);
 
         settingsPanel.SetActive(false);
     }
@@ -82,6 +92,23 @@ public class SettingsManager : MonoBehaviour
         resolutionDropdown.RefreshShownValue();
     }
 
+    void InitializeDisplayMode()
+    {    
+        fullscreenToggle.isOn = Screen.fullScreenMode == FullScreenMode.FullScreenWindow;
+        UpdateToggleLabel(fullscreenToggle.isOn);
+    }
+
+    void InitializeVolumes()
+    {
+        masterVolumeSlider.value = PlayerPrefs.GetFloat(Constants.MASTER_VOLUME, Constants.DEFAULT_VOLUME);
+        musicVolumeSlider.value = PlayerPrefs.GetFloat(Constants.MUSIC_VOLUME, Constants.DEFAULT_VOLUME);
+        voiceVolumeSlider.value = PlayerPrefs.GetFloat(Constants.VOICE_VOLUME, Constants.DEFAULT_VOLUME);
+
+        SetMasterVolume(masterVolumeSlider.value);
+        SetMusicVolume(musicVolumeSlider.value);
+        SetVoiceVolume(voiceVolumeSlider.value);
+    }
+
     void SetDisplayMode(bool isFullscreen)
     {
         Screen.fullScreenMode = isFullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
@@ -103,21 +130,46 @@ public class SettingsManager : MonoBehaviour
 
     void CloseSetting()
     {
-        //SaveSettings();
+        SaveSettings();
         settingsPanel.SetActive(false);
     }
 
-    /*void SaveSettings()
+    void SaveSettings()
     {
         PlayerPrefs.SetInt("Resolution", resolutionDropdown.value);
         PlayerPrefs.SetInt("Fullscreen", fullscreenToggle.isOn ? 1 : 0);
+        
+        PlayerPrefs.SetFloat(Constants.MASTER_VOLUME, masterVolumeSlider.value);
+        PlayerPrefs.SetFloat(Constants.MUSIC_VOLUME, musicVolumeSlider.value);
+        PlayerPrefs.SetFloat(Constants.VOICE_VOLUME, voiceVolumeSlider.value);
         PlayerPrefs.Save();
-    }*/
+    }
+
+    private float SliderValueToDecibel(float sliderValue)
+    {
+        return sliderValue > 0.0001f ? Mathf.Log10(sliderValue) * 20 : -80f;
+    }
+    void SetMasterVolume(float volume)
+    {
+        audioMixer.SetFloat(Constants.MASTER_VOLUME, SliderValueToDecibel(volume));
+    }
+
+    void SetMusicVolume(float volume)
+    {
+        audioMixer.SetFloat(Constants.MUSIC_VOLUME, SliderValueToDecibel(volume));
+    }
+
+    void SetVoiceVolume(float volume)
+    {
+        audioMixer.SetFloat(Constants.VOICE_VOLUME, SliderValueToDecibel(volume));
+    }
+
 
     void ResetSetting()
     {
         resolutionDropdown.value = resolutionDropdown.options.FindIndex(
             option => option.text == $"{defaultResolution.width}x{defaultResolution.height}");
         fullscreenToggle.isOn = true;
+        InitializeVolumes();
     }
 }

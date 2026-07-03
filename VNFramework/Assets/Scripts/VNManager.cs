@@ -4,9 +4,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Xml;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class VNManager : MonoBehaviour
@@ -19,9 +19,8 @@ public class VNManager : MonoBehaviour
     public ScreenShooter screenShooter;
 
     public Image avatarImage;
-    public AudioSource vocalAudio;
     public Image backgroundImage;
-    public AudioSource backgroundMusic;
+
     public Image characterImage1;
     public Image characterImage2;
 
@@ -166,8 +165,6 @@ public class VNManager : MonoBehaviour
         backgroundImage.gameObject.SetActive(false);
         characterImage1.gameObject.SetActive(false);
         characterImage2.gameObject.SetActive(false);
-        backgroundMusic.gameObject.SetActive(false);
-        vocalAudio.gameObject.SetActive(false);
         choicePanel.gameObject.SetActive(false);
 	}
 
@@ -220,6 +217,7 @@ public class VNManager : MonoBehaviour
             if (storyData[currentLine].speaker == Constants.END_OF_STORY)
             {
                 Debug.Log(Constants.END_OF_STORY);
+                SceneManager.LoadScene(Constants.CREDITS_SCENE);
             }
             else if (storyData[currentLine].speaker == Constants.CHOICE)
             {
@@ -425,36 +423,12 @@ public class VNManager : MonoBehaviour
 
 	void PlayVocalAudio(string audioFileName)
 	{
-		string audioPath = Constants.VOCAL_PATH + audioFileName;
-        PlayAudio(audioPath, vocalAudio, false);
+		AudioManager.Instance.PlayVoice(audioFileName);
 	}
 	void PlayBackgroundMusic(string audioFileName)
 	{
-		string musicPath = Constants.MUSIC_PATH + audioFileName;
-        PlayAudio(musicPath, backgroundMusic, true);
+		AudioManager.Instance.PlayBackground(audioFileName);
 	}
-
-    void PlayAudio(string audioPath, AudioSource audioSource, bool isLoop)
-    {
-		AudioClip audioClip = Resources.Load<AudioClip>(audioPath);
-		if (audioClip != null)
-		{
-			audioSource.clip = audioClip;
-			audioSource.loop = isLoop;
-            audioSource.gameObject.SetActive(true);
-			
-            // todo: Force replay?
-            audioSource.Stop();
-            audioSource.time = 0;
-            audioSource.enabled = true;
-            audioSource.Play();
-		}
-		else
-		{
-			Debug.LogError(Constants.AUDIO_LOAD_FAILED + audioPath);
-		}
-	}
-
 
 	bool IsHittingBottomButtons()
     {
@@ -584,8 +558,6 @@ public class VNManager : MonoBehaviour
     {
         StopAutoAndSkip();
         typewriterEffect.CompleteLine();
-        vocalAudio.Stop();
-        backgroundMusic.Stop();
         gamePanel.SetActive(false);
         MenuManager.Instance.menuPanel.SetActive(true);
     }

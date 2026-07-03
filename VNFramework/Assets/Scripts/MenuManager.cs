@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+// todo: Add localization?
 public class MenuManager : MonoBehaviour
 {
     public GameObject menuPanel;

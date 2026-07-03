@@ -62,4 +62,22 @@ public class Constants
 	public static string PLAYER_NAME_TAG = "[Name]";
 
 	public static string GOTO = "goto";
+
+	public static string MASTER_VOLUME = "MasterVolume";
+	public static string MUSIC_VOLUME = "MusicVolume";
+	public static string VOICE_VOLUME = "VoiceVolume";
+	public static float DEFAULT_VOLUME = 0.5f;
+	public static string MENU_MUSIC_FILE_NAME = "1";
+	
+	public static string CREDITS_MUSIC_FILE_NAME = "1";
+
+	public static string CREDITS_PATH = "credits";
+	public static string CREDITS_FILE_EXTENSION = ".txt";
+	public static string CREDITS_SCROLL_END = "Credits scrolling end";
+	public static float CREDITS_SCROLL_SPEED = 100f;
+	public static float CREDITS_SCROLL_END_Y = 4000f;
+	public static string CREDITS_SCENE = "CreditsScene";
+	// todo: Consider moving menu to a scene
+	public static string MENU_SCENE = "SampleScene";
+	public static string GAME_SCENE = "SampleScene";
 }
