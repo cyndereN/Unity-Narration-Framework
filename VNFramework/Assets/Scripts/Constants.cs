@@ -44,6 +44,7 @@ public class Constants
 	public static int SLOTS_PER_PAGE = 8;
 	public static int TOTAL_SLOTS = 40;
 	public static string COLON = ":";
+	public static string CHOICE_SEPARATOR = "\n";
 	public static string SAVE_GAME = "save_game";
 	public static string SAVE_FILE_PATH = "saves";
 	public static string SAVE_FILE_EXTENSION = ".json";

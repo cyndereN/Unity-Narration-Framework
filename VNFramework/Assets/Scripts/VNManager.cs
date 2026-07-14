@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -23,11 +24,6 @@ public class VNManager : MonoBehaviour
 
     public Image characterImage1;
     public Image characterImage2;
-
-    public GameObject choicePanel;
-    public Button choiceButton1;
-    public Button choiceButton2;
-    // todo: what if more buttons?
 
     public GameObject bottomButtons;
     public Button autoButton;
@@ -99,7 +95,7 @@ public class VNManager : MonoBehaviour
                 {
                     OpenUI();
                 }
-                else if (!IsHittingBottomButtons())
+                else if (!IsHittingBottomButtons() && !ChoiceManager.Instance.choicePanel.activeSelf)
                 {
                     DisplayNextLine();
                 }
@@ -165,7 +161,6 @@ public class VNManager : MonoBehaviour
         backgroundImage.gameObject.SetActive(false);
         characterImage1.gameObject.SetActive(false);
         characterImage2.gameObject.SetActive(false);
-        choicePanel.gameObject.SetActive(false);
 	}
 
 	void LoadStoryFromFile(string filename)
@@ -333,16 +328,17 @@ public class VNManager : MonoBehaviour
         StopAutoAndSkip();
         typewriterEffect.CompleteLine();
         var Data = storyData[currentLine];
-        choiceButton1.onClick.RemoveAllListeners();
-        choiceButton2.onClick.RemoveAllListeners();
+        var choices = Data.content.Split(Constants.CHOICE_SEPARATOR).Select(s=>s.Trim()).ToList();
+        var actions = Data.avatarImageFileName.Split(Constants.CHOICE_SEPARATOR).Select(s=>s.Trim()).ToList();
+        ChoiceManager.Instance.ShowChoices(choices, actions, HandleChoice);
+    }
 
-        choicePanel.gameObject.SetActive(true);
-        choiceButton1.GetComponentInChildren<TextMeshProUGUI>().text = Data.content;
-        choiceButton1.onClick.AddListener(()=>InitializeAndLoadStory(Data.avatarImageFileName, defaultStartLine));
-
-		choiceButton2.GetComponentInChildren<TextMeshProUGUI>().text = Data.vocalAudioFileName;
-		choiceButton2.onClick.AddListener(() => InitializeAndLoadStory(Data.backgroundImageFileName, defaultStartLine));
-	}
+    void HandleChoice(string selectedChoice)
+    {
+        currentLine = Constants.DEFAULT_START_LINE;
+        LoadStoryFromFile(selectedChoice);
+        DisplayNextLine();
+    }
 
     bool NotNullNorEmpty(string str)
     {
