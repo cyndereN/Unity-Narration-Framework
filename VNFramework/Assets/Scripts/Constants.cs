@@ -81,4 +81,7 @@ public class Constants
 	// todo: Consider moving menu to a scene
 	public static string MENU_SCENE = "SampleScene";
 	public static string GAME_SCENE = "SampleScene";
+
+	public static string CONFIRM_OVERWRITE = "Are you sure you want to overwrite the save slot?";
+	public static string CONFIRM_DELETE = "Are you sure you want to delete the save slot?";
 }

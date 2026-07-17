@@ -74,6 +74,7 @@ public class MenuManager : MonoBehaviour
     {
         hasStarted = true;
         menuPanel.SetActive(false);
+        SaveLoadManager.Instance.saveLoadPanel.SetActive(false);
         VNManager.Instance.gamePanel.SetActive(true);
     }
 

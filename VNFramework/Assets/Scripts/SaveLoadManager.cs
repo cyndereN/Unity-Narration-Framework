@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using System.IO;
 using TMPro;
 using Unity.VisualScripting;
+using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,10 +10,15 @@ public class SaveLoadManager : MonoBehaviour
 {
 	public GameObject saveLoadPanel;
 	public TextMeshProUGUI panelTitle;
-	public Button[] saveLoadButtons;
+	public SaveSlot[] slots;
 	public Button prevPageButton;
 	public Button nextPageButton;
 	public Button backButton;
+
+	public GameObject confirmPanel;
+	public TextMeshProUGUI confirmText;
+	public Button confirmButton;
+	public Button cancelButton;
 
 	private bool isSave;
 	private int currentPage = Constants.DEFAULT_START_INDEX;
@@ -40,8 +46,79 @@ public class SaveLoadManager : MonoBehaviour
 	{
 		prevPageButton.onClick.AddListener(PrevPage);
 		nextPageButton.onClick.AddListener(NextPage);
-		//backButton.onClick.AddListener(GoBack);
+		backButton.onClick.AddListener(GoBack);
+
+		confirmPanel.SetActive(false);
 		saveLoadPanel.SetActive(false);
+		
+		RefreshPage();
+	}
+
+	private void RefreshPage()
+	{
+		for (int i = 0; i < slots.Length; i++)
+		{
+			int slotIndex = currentPage * slotsPerPage + i;
+			if (slotIndex >= totalSlots) 
+			{
+				slots[i].gameObject.SetActive(false);
+				continue;
+			}
+			slots[i].gameObject.SetActive(true);
+			slots[i].Init(this, slotIndex);
+			slots[i].Refresh();
+		}
+	}
+
+	public void HandleEmptySlot(int slotIndex, SaveSlot slot)
+	{
+		SaveToSlot(slotIndex, slot);
+	}
+
+	public void HandleExistingSlot(int slotIndex, SaveSlot slot)
+	{
+		if (!isSave)
+		{
+			VNManager.Instance.LoadGame(slotIndex);
+			menuAction?.Invoke();
+		}
+		else
+		{
+			ShowConfirm( Constants.CONFIRM_OVERWRITE, ()=> {SaveToSlot(slotIndex, slot);} );
+		}
+	}
+
+	public void RequestDelete(int slotIndex, SaveSlot slot)
+	{
+		ShowConfirm( Constants.CONFIRM_DELETE, ()=> {DeleteSlot(slotIndex, slot);} );
+	}
+
+	private void SaveToSlot(int slotIndex, SaveSlot slot)
+	{
+		VNManager.Instance.SaveGame(slotIndex);
+		slot.Refresh();
+	}
+
+	private void DeleteSlot(int slotIndex, SaveSlot slot)
+	{
+		File.Delete(GenerateDataPath(slotIndex));
+		slot.Refresh();
+	}
+
+	private void ShowConfirm(string msg, System.Action OnYes){
+		confirmText.text = msg;
+		confirmPanel.SetActive(true);
+		cancelButton.onClick.RemoveAllListeners();
+		cancelButton.onClick.AddListener(() => 
+		{	
+			confirmPanel.SetActive(false);
+		});
+		confirmButton.onClick.RemoveAllListeners();
+		confirmButton.onClick.AddListener(() => 
+		{	
+			confirmPanel.SetActive(false);
+			OnYes?.Invoke();
+		});
 	}
 
 	public void ShowSavePanel(System.Action<int> action)
@@ -49,7 +126,7 @@ public class SaveLoadManager : MonoBehaviour
 		isSave = true;
 		panelTitle.text = Constants.SAVE_GAME;
 		currentAction = action;
-		UpdateUI();
+		RefreshPage();
 		saveLoadPanel.SetActive(true);
 	}
 
@@ -59,26 +136,10 @@ public class SaveLoadManager : MonoBehaviour
 		panelTitle.text = Constants.LOAD_GAME;
 		currentAction = action;
 		this.menuAction = menuAction;
-		UpdateUI();
+		RefreshPage();	
 		saveLoadPanel.SetActive(true);
 	}
-	
-	private void UpdateUI()
-	{
-		for (int i = 0; i < slotsPerPage; i++)
-		{
-			int slotIndex = currentPage * slotsPerPage + i;
-			if (slotIndex < totalSlots)
-			{
-				UpdateSaveLoadButtons(saveLoadButtons[i], slotIndex);
-				LoadStorylineAndScreenshots(saveLoadButtons[i], slotIndex);
-			}
-			else
-			{
-				saveLoadButtons[i].gameObject.SetActive(false);
-			}
-		}
-	}
+
 
 	private void UpdateSaveLoadButtons(Button button, int slotIndex)
 	{
@@ -122,18 +183,18 @@ public class SaveLoadManager : MonoBehaviour
 		if (currentPage > 0)
 		{
 			currentPage--;
-			UpdateUI();
+			RefreshPage();
 		}
 	}
 
-	private void NextPage()
-	{
-		if ((currentPage + 1) * slotsPerPage < totalSlots)
+		private void NextPage()
 		{
-			currentPage++;
-			UpdateUI();
+			if ((currentPage + 1) * slotsPerPage < totalSlots)
+			{
+				currentPage++;
+				RefreshPage();
+			}
 		}
-	}
 
 	private void GoBack()
 	{

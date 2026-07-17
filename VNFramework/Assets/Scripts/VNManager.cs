@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+// todo: Optimize this
 public class VNManager : MonoBehaviour
 {
 #region Variables
@@ -78,6 +79,31 @@ public class VNManager : MonoBehaviour
     {
         InitializeSaveFilePath();
         bottomButtonsAddListener();
+        LoadUnblockedBackgroundsFromPlayerPrefs();
+    }
+    
+    private void SaveUnblockedBackgroundsToPlayerPrefs()
+    {
+        string[] bgArray = unblockedBackgrounds.ToArray();
+        string json = JsonConvert.SerializeObject(bgArray);
+        PlayerPrefs.SetString("UnblockedBackgrounds", json);
+        PlayerPrefs.Save();
+    }
+    
+    private void LoadUnblockedBackgroundsFromPlayerPrefs()
+    {
+        if (PlayerPrefs.HasKey("UnblockedBackgrounds"))
+        {
+            string json = PlayerPrefs.GetString("UnblockedBackgrounds");
+            string[] bgArray = JsonConvert.DeserializeObject<string[]>(json);
+            foreach (string bg in bgArray)
+            {
+                if (!unblockedBackgrounds.Contains(bg))
+                {
+                    unblockedBackgrounds.Add(bg);
+                }
+            }
+        }
     }
 
 	// Update is called once per frame
@@ -374,6 +400,8 @@ public class VNManager : MonoBehaviour
         if (!unblockedBackgrounds.Contains(imageFileName))
         {
             unblockedBackgrounds.Add(imageFileName);
+            // 立即保存到 PlayerPrefs，确保即使不存档也能保留解锁状态
+            SaveUnblockedBackgroundsToPlayerPrefs();
         }
 	}
 	
@@ -490,8 +518,9 @@ public class VNManager : MonoBehaviour
         public byte[] screenShotData;
         public LinkedList<string> savedHistoryRecords;
         public string savedPlayerName;
+        public HashSet<string> savedUnblockedBackgrounds;
     } 
-    void SaveGame(int slotIndex)
+    public void SaveGame(int slotIndex)
     {
         var saveData = new SaveData(){
             savedStoryFileName = currentStoryFileName,
@@ -500,17 +529,23 @@ public class VNManager : MonoBehaviour
             screenShotData = screenshotData,
             savedHistoryRecords = historyRecords,
             savedPlayerName = PlayerData.Instance.playerName,
+            savedUnblockedBackgrounds = unblockedBackgrounds,
         };
         
         string savePath = Path.Combine(saveFolderPath, slotIndex + Constants.SAVE_FILE_EXTENSION);
         string json = JsonConvert.SerializeObject(saveData, Newtonsoft.Json.Formatting.Indented);
         File.WriteAllText(savePath, json);
+        
+        // 同时保存已解锁背景到 PlayerPrefs，确保跨存档永久解锁
+        SaveUnblockedBackgroundsToPlayerPrefs();
     }
 
     private void OnLoadButtonClick()
     {
         StopAutoAndSkip();
-        ShowLoadPanel(null);
+        ShowLoadPanel(()=>{
+            SaveLoadManager.Instance.saveLoadPanel.SetActive(false);
+        });
     }
 
     public void ShowLoadPanel(Action action)
@@ -518,7 +553,7 @@ public class VNManager : MonoBehaviour
         SaveLoadManager.Instance.ShowLoadPanel(LoadGame, action);
     }
 
-    void LoadGame(int slotIndex)
+    public void LoadGame(int slotIndex)
     {
         string savePath = Path.Combine(saveFolderPath, slotIndex + Constants.SAVE_FILE_EXTENSION);
         if (File.Exists(savePath))
@@ -530,6 +565,15 @@ public class VNManager : MonoBehaviour
             historyRecords = saveData.savedHistoryRecords;
             historyRecords.RemoveLast();
             PlayerData.Instance.playerName = saveData.savedPlayerName;
+            
+            // 加载存档中的已解锁背景
+            if (saveData.savedUnblockedBackgrounds != null)
+            {
+                unblockedBackgrounds = saveData.savedUnblockedBackgrounds;
+            }
+            
+            // 从 PlayerPrefs 加载永久解锁的背景
+            LoadUnblockedBackgroundsFromPlayerPrefs();
 
             // Display Next line ++ ed
             var lineNumber = saveData.savedLine - 1;
