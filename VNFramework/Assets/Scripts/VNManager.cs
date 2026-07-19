@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+// todo: Add favorability system
 // todo: Optimize this
 public class VNManager : MonoBehaviour
 {

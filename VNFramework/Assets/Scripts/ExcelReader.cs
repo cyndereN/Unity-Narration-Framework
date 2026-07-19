@@ -16,7 +16,6 @@ public class ExcelReader : MonoBehaviour
         public string backgroundImageFileName;
         public string backgroundMusicFileName;
         // Assume only 2 characrers are allow in 1 "frame"
-        // todo: dynamically extend the character array in excel?
         // todo: extend sets of actions (e.g., appear, moveto, then disappear)
         public string character1Action;
         public string coordinateX1;
